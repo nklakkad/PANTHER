@@ -1,0 +1,30 @@
+const video=document.querySelector('#hero-video'),motion=document.querySelector('#motion'),dialog=document.querySelector('#dialog'),body=document.querySelector('#dialog-body');
+document.querySelector('#year').textContent=new Date().getFullYear();
+let paused=matchMedia('(prefers-reduced-motion: reduce)').matches;if(paused&&video)video.pause();
+function setMotion(){if(!video||!motion)return;document.documentElement.classList.toggle('motion-paused',paused);paused?video.pause():video.play().catch(()=>{});motion.textContent=paused?'RESUME MOTION ▷':'PAUSE MOTION Ⅱ';motion.setAttribute('aria-label',paused?'Play background film':'Pause background film')}setMotion();motion?.addEventListener('click',()=>{paused=!paused;setMotion()});
+document.querySelector('#open-film')?.addEventListener('click',()=>{body.innerHTML='<video src="assets/film.mp4" poster="assets/set.webp" preload="none" controls autoplay loop playsinline></video><p>Cinematic concept loop · generated film-set imagery. Original shoot footage can replace this preview.</p>';dialog.showModal()});
+document.querySelector('.close')?.addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});dialog.addEventListener('close',()=>{body.innerHTML=''});
+document.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-filter]').forEach(x=>(x.classList.toggle('active',x===b),x.setAttribute('aria-pressed',String(x===b))));document.querySelectorAll('.project').forEach(p=>p.hidden=b.dataset.filter!=='all'&&b.dataset.filter!==p.dataset.category)}));
+document.querySelectorAll('.project').forEach(p=>p.addEventListener('click',()=>{body.innerHTML='';const img=document.createElement('img');img.src=p.querySelector('img').getAttribute('src');img.alt=p.dataset.title;const h=document.createElement('h2');h.textContent=p.dataset.title;const desc=document.createElement('p');desc.textContent=p.dataset.description+' Illustrative concept; not a client project.';body.append(img,h,desc);dialog.showModal()}));
+document.querySelector('#brief-open')?.addEventListener('click',()=>{const b=document.querySelector('#brief');b.hidden=!b.hidden;if(!b.hidden)b.querySelector('input').focus()});document.querySelector('#brief-form')?.addEventListener('submit',async e=>{
+e.preventDefault();const form=e.target;if(form.dataset.sending==='true')return;if(!form.reportValidity())return;
+const button=form.querySelector('button[type=submit]'),status=document.querySelector('#enquiry-actions'),data=new FormData(form);
+if(data.get('_honey'))return;
+form.dataset.sending='true';form.setAttribute('aria-busy','true');button.disabled=true;button.textContent='Sending…';status.hidden=false;status.dataset.state='pending';status.textContent='Sending your enquiry. Please wait…';
+const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
+try{
+const payload=Object.fromEntries(data);payload._subject='Panther Productions enquiry — '+data.get('type');payload._replyto=data.get('email');payload._url=location.origin+'/contact.html';
+const response=await fetch('/api/enquiry',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload),signal:controller.signal});
+const result=await response.json();
+if(result.state==='setup'){status.dataset.state='setup';status.textContent='The studio email connection is awaiting activation. Please contact us directly at pantherproductionofficial@gmail.com or call +91 92742 53388. Your details remain here so you can retry.';}
+else{if(!response.ok||!(result.success===true||result.success==='true'))throw new Error(result.message||'The email service could not accept this enquiry.');status.dataset.state='success';status.textContent='Thank you. Your enquiry has been submitted to Panther Productions.';form.reset();}
+}catch(error){status.dataset.state='error';status.textContent=error.name==='AbortError'?'The submission timed out. Delivery could not be confirmed. Your details are saved in this form; please contact the studio before trying again.':(error.message==='Failed to fetch'?'The website connection was interrupted. Your details remain in the form. Please check your connection and try again.':error.message);}
+finally{clearTimeout(timer);form.dataset.sending='false';form.removeAttribute('aria-busy');button.disabled=false;button.textContent='Submit enquiry ↗';status.focus();}
+});
+
+const revealObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in-view");revealObserver.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll(".section-head,.project,.studio>div,.service-list,.contact").forEach(el=>{el.classList.add("reveal");revealObserver.observe(el)});
+
+const serviceNames={'production':'Production','film':'Film','editing':'Editing','brand-shoot':'Brand Shoot','marketing':'Marketing','film-investment':'Film Investment'};const selectedService=serviceNames[new URLSearchParams(location.search).get('service')];if(selectedService&&document.querySelector('#brief')){document.querySelector('#brief').hidden=false;document.querySelector('[name=type]').value=selectedService;}document.querySelectorAll('header nav a').forEach(a=>{if(a.getAttribute('href')===(location.pathname.split('/').pop()||'index.html'))a.setAttribute('aria-current','page')});
+// Small image-scale changes follow the visitor's scroll, while text remains stable.
+(()=>{const cards=[...document.querySelectorAll('.project-image')];let scheduled=false;function update(){scheduled=false;if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;for(const card of cards){const r=card.getBoundingClientRect();if(r.bottom>0&&r.top<innerHeight)card.style.setProperty('--image-scale',String(1.01+Math.max(0,Math.min(1,1-r.top/innerHeight))*.07))}}addEventListener('scroll',()=>{if(!scheduled){scheduled=true;requestAnimationFrame(update)}},{passive:true});update()})();
+document.querySelectorAll('.service-tile,.process-grid>div,.service-feature,.philosophy').forEach(el=>{el.classList.add('reveal');revealObserver.observe(el)});

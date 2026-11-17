@@ -1,0 +1,5 @@
+import {readdir,readFile,mkdir,writeFile,rm} from 'node:fs/promises';
+import path from 'node:path';
+const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.mp4':'video/mp4','.woff':'font/woff','.woff2':'font/woff2'};
+const assets={};async function walk(dir){for(const item of await readdir(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory())await walk(file);else assets['/'+path.relative('web',file).split(path.sep).join('/')]=[types[path.extname(file)]||'application/octet-stream',(await readFile(file)).toString('base64')]}}
+await walk('web');await rm('dist',{recursive:true,force:true});await mkdir('dist/server',{recursive:true});await mkdir('dist/.openai',{recursive:true});await writeFile('dist/server/index.js','const ASSETS='+JSON.stringify(assets)+';\n'+await readFile('worker/index.js','utf8'));await writeFile('dist/.openai/hosting.json',await readFile('.openai/hosting.json'));console.log('Built Worker with '+Object.keys(assets).length+' existing assets');

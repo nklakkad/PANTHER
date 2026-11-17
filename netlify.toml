@@ -1,0 +1,7 @@
+[build]
+  # Serve the website from the web/ folder so web/index.html is the homepage.
+  publish = "web"
+  command = ""
+
+[functions]
+  directory = "netlify/functions"
